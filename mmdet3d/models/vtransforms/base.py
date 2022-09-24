@@ -10,11 +10,11 @@ __all__ = ["BaseTransform", "BaseDepthTransform"]
 
 
 def gen_dx_bx(xbound, ybound, zbound):
-    dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]])
-    bx = torch.Tensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]])
+    dx = torch.Tensor([row[2] for row in [xbound, ybound, zbound]])  # 单位值
+    bx = torch.Tensor([row[0] + row[2] / 2.0 for row in [xbound, ybound, zbound]])  # 首个voxel中心
     nx = torch.LongTensor(
         [(row[1] - row[0]) / row[2] for row in [xbound, ybound, zbound]]
-    )
+    )  # xyz个数
     return dx, bx, nx
 
 
@@ -25,7 +25,7 @@ class BaseTransform(nn.Module):
         out_channels: int,
         image_size: Tuple[int, int],
         feature_size: Tuple[int, int],
-        xbound: Tuple[float, float, float],
+        xbound: Tuple[float, float, float],  # 最小值，最大值，单位值
         ybound: Tuple[float, float, float],
         zbound: Tuple[float, float, float],
         dbound: Tuple[float, float, float],
