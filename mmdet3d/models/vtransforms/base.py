@@ -39,10 +39,10 @@ class BaseTransform(nn.Module):
         self.zbound = zbound
         self.dbound = dbound
 
-        dx, bx, nx = gen_dx_bx(self.xbound, self.ybound, self.zbound)
-        self.dx = nn.Parameter(dx, requires_grad=False)
-        self.bx = nn.Parameter(bx, requires_grad=False)
-        self.nx = nn.Parameter(nx, requires_grad=False)
+        dx, bx, nx = gen_dx_bx(self.xbound, self.ybound, self.zbound)  # 空间坐标栅格化
+        self.dx = nn.Parameter(dx, requires_grad=False)  # 单位值
+        self.bx = nn.Parameter(bx, requires_grad=False)  # 最小值
+        self.nx = nn.Parameter(nx, requires_grad=False)  # 个数
 
         self.C = out_channels
         self.frustum = self.create_frustum()
@@ -57,22 +57,24 @@ class BaseTransform(nn.Module):
         ds = (
             torch.arange(*self.dbound, dtype=torch.float)
             .view(-1, 1, 1)
-            .expand(-1, fH, fW)
+            .expand(-1, fH, fW)  # dbound的D，fH，fW
         )
         D, _, _ = ds.shape
-
+        
+        # 图像坐标系
         xs = (
             torch.linspace(0, iW - 1, fW, dtype=torch.float)
             .view(1, 1, fW)
             .expand(D, fH, fW)
         )
+        # 图像坐标系
         ys = (
             torch.linspace(0, iH - 1, fH, dtype=torch.float)
             .view(1, fH, 1)
             .expand(D, fH, fW)
         )
 
-        frustum = torch.stack((xs, ys, ds), -1)
+        frustum = torch.stack((xs, ys, ds), -1)  # D x H x W x 3
         return nn.Parameter(frustum, requires_grad=False)
 
     @force_fp32()
@@ -88,7 +90,7 @@ class BaseTransform(nn.Module):
         **kwargs,
     ):
         B, N, _ = trans.shape
-        # undo post-transformation
+        # undo post-transformation  # ????
         # B x N x D x H x W x 3
         points = self.frustum - post_trans.view(B, N, 1, 1, 1, 3)
         points = (
@@ -105,8 +107,8 @@ class BaseTransform(nn.Module):
             5,
         )
         combine = rots.matmul(torch.inverse(intrins))
-        points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)
-        points += trans.view(B, N, 1, 1, 1, 3)
+        points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)  # 空间3D点：图像坐标系->相机坐标系
+        points += trans.view(B, N, 1, 1, 1, 3)  # 空间3D点：图像坐标系->相机坐标系
         # ego_to_lidar
         points -= lidar2ego_trans.view(B, 1, 1, 1, 1, 3)
         points = (
@@ -149,10 +151,10 @@ class BaseTransform(nn.Module):
                 torch.full([Nprime // B, 1], ix, device=x.device, dtype=torch.long)
                 for ix in range(B)
             ]
-        )
-        geom_feats = torch.cat((geom_feats, batch_ix), 1)
+        )  
+        geom_feats = torch.cat((geom_feats, batch_ix), 1)  # 自动到扩展所有batch
 
-        # filter out points that are outside box
+        # filter out points that are outside box 过滤图像外的点
         kept = (
             (geom_feats[:, 0] >= 0)
             & (geom_feats[:, 0] < self.nx[0])
