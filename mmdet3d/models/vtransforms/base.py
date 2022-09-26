@@ -107,6 +107,8 @@ class BaseTransform(nn.Module):
             5,
         )
         combine = rots.matmul(torch.inverse(intrins))
+        
+        # 相机坐标系
         points = combine.view(B, N, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)  # 空间3D点：图像坐标系->相机坐标系
         points += trans.view(B, N, 1, 1, 1, 3)  # 空间3D点：图像坐标系->相机坐标系
         # ego_to_lidar
@@ -154,7 +156,7 @@ class BaseTransform(nn.Module):
         )  
         geom_feats = torch.cat((geom_feats, batch_ix), 1)  # 自动到扩展所有batch
 
-        # filter out points that are outside box 过滤图像外的点
+        # filter out points that are outside box 过滤空间栅格外的点
         kept = (
             (geom_feats[:, 0] >= 0)
             & (geom_feats[:, 0] < self.nx[0])
