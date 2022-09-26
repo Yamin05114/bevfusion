@@ -284,7 +284,7 @@ class BaseDepthTransform(BaseTransform):
             trans,
             intrins,
             post_rots,
-            post_trans,
+            post_trans, 
             lidar2ego_rots,
             lidar2ego_trans,
         )
