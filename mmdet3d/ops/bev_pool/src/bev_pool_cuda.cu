@@ -41,7 +41,7 @@ __global__ void bev_pool_kernel(int b, int d, int h, int w, int n, int c, int n_
     cur_geom_feats[2] * h * w * c + cur_geom_feats[0] * w * c + 
     cur_geom_feats[1] * c + cur_c;
   
-  // 标准点内所有点云当前channel累加
+  // 标准点内所有点云当前channel累加，没有取平均
   float psum = 0;
   for(int i = 0; i < interval_length; i++){
     psum += cur_x[i * c];
