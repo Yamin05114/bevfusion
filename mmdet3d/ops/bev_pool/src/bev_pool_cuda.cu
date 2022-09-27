@@ -10,9 +10,9 @@
     w                : width of pooled feature map
     n                : number of input points
     c                : number of channels
-    n_intervals      : number of unique points
-    x                : input features, FloatTensor[n, c]
-    geom_feats       : input coordinates, IntTensor[n, 4]
+    n_intervals      : number of unique points  
+    x                : input features, FloatTensor[n, c]  点的深度学习特征
+    geom_feats       : input coordinates, IntTensor[n, 4]  点的空间位置
     interval_lengths : starting position for pooled point, IntTensor[n_intervals]
     interval_starts  : how many points in each pooled point, IntTensor[n_intervals]
     out              : output features, FloatTensor[b, d, h, w, c]
@@ -23,17 +23,25 @@ __global__ void bev_pool_kernel(int b, int d, int h, int w, int n, int c, int n_
                                   const int *__restrict__ interval_starts,
                                   const int *__restrict__ interval_lengths,
                                   float* __restrict__ out) {
+  //找到pool标准点，点对应channel
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
-  int index = idx / c;
+  int index = idx / c;  
   int cur_c = idx % c;
   if (index >= n_intervals) return;
-  int interval_start = interval_starts[index];
-  int interval_length = interval_lengths[index];
+  
+  
+  int interval_start = interval_starts[index];  // 标准点是点云第几个点开始
+  int interval_length = interval_lengths[index];  // 标准点包括点云多少点
   const int* cur_geom_feats = geom_feats + interval_start * 4;
+  // 找到输入对应位置
   const float* cur_x = x + interval_start * c + cur_c;
+  
+  // 找到输出的对应位置
   float* cur_out = out + cur_geom_feats[3] * d * h * w * c + 
     cur_geom_feats[2] * h * w * c + cur_geom_feats[0] * w * c + 
     cur_geom_feats[1] * c + cur_c;
+  
+  // 标准点内所有点云当前channel累加
   float psum = 0;
   for(int i = 0; i < interval_length; i++){
     psum += cur_x[i * c];
